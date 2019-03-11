@@ -27,15 +27,16 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ template "nvidia-inference-server.fullname" . }}
+  name: {{ template "nvidia-inference-server.backend.fullname" . }}
   namespace: {{ .Release.Namespace }}
   labels:
     app: {{ template "nvidia-inference-server.name" . }}
     chart: {{ template "nvidia-inference-server.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
+    component: {{ .Values.backend.name }}
 spec:
-  type: {{ .Values.service.type }}
+  type: {{ .Values.backend.service.type }}
   ports:
     - port: 8000
       targetPort: http
@@ -49,3 +50,4 @@ spec:
   selector:
     app: {{ template "nvidia-inference-server.name" . }}
     release: {{ .Release.Name }}
+    component: {{ .Values.backend.name }}

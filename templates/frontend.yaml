@@ -27,59 +27,35 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ template "nvidia-inference-server.fullname" . }}
+  name: {{ template "nvidia-inference-server.frontend.fullname" . }}
   namespace: {{ .Release.Namespace }}
   labels:
     app: {{ template "nvidia-inference-server.name" . }}
     chart: {{ template "nvidia-inference-server.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
+    component: {{ .Values.frontend.name }}
 spec:
-  replicas: {{ .Values.replicaCount }}
+  replicas: 1
   selector:
     matchLabels:
       app: {{ template "nvidia-inference-server.name" . }}
       release: {{ .Release.Name }}
+      component: {{ .Values.frontend.name }}
   template:
     metadata:
       labels:
         app: {{ template "nvidia-inference-server.name" . }}
         release: {{ .Release.Name }}
+        component: {{ .Values.frontend.name }}
 
     spec:
       containers:
         - name: {{ .Chart.Name }}
-          image: "{{ .Values.image.imageName }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          image: "renaudwastaken/tensorrt-frontend:latest"
 
-          resources:
-            limits:
-              nvidia.com/gpu: {{ .Values.image.numGpus }}
-
-          command: ["trtserver"]
-          args: ["--model-store={{ .Values.image.modelRepositoryPath }}"]
-          env:
-            - name: GOOGLE_APPLICATION_CREDENTIALS
-              value: /secret/gcp-creds.json
-
+          command: ["python"]
+          args: ["main.py", "{{ template "nvidia-inference-server.backend.fullname" . }}:8000"]
           ports:
-            - containerPort: 8000
+            - containerPort: 5000
               name: http
-            - containerPort: 8001
-              name: grpc
-            - containerPort: 8002
-              name: metrics
-          livenessProbe:
-            httpGet:
-              path: /api/health/live
-              port: http
-          readinessProbe:
-            initialDelaySeconds: 5
-            periodSeconds: 5
-            httpGet:
-              path: /api/health/ready
-              port: http
-
-          securityContext:
-            runAsUser: 1000
-            fsGroup: 1000
