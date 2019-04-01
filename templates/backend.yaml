@@ -50,6 +50,32 @@ spec:
         component: {{ .Values.backend.name }}
 
     spec:
+      volumes:
+        - name: modelrepo
+          hostPath:
+              path: /models
+              type: Directory
+
+      initContainers:
+        - name: "modelpull"
+          image: golang:1.11
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/sh", "-c"]
+          args: ["mkdir -p /models/resnet50_netdef/1;
+                 wget -O /models/resnet50_netdef/1/model.netdef
+                         http://download.caffe2.ai.s3.amazonaws.com/models/resnet50/predict_net.pb;
+                 wget -O /models/resnet50_netdef/1/init_model.netdef
+                         http://download.caffe2.ai.s3.amazonaws.com/models/resnet50/init_net.pb;
+                 wget -O /models/resnet50_netdef/config.pbtxt
+                         https://raw.githubusercontent.com/NVIDIA/tensorrt-inference-server/v1.0.0/docs/examples/model_repository/resnet50_netdef/config.pbtxt;
+                 wget -O /models/resnet50_netdef/resnet50_labels.txt
+                         https://raw.githubusercontent.com/NVIDIA/tensorrt-inference-server/v1.0.0/docs/examples/model_repository/resnet50_netdef/resnet50_labels.txt"]
+          volumeMounts:
+            - mountPath: /models
+              name: modelrepo
+
+
+
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.backend.deployment.imageName }}"
@@ -60,7 +86,7 @@ spec:
               nvidia.com/gpu: {{ .Values.backend.deployment.numGpus }}
 
           command: ["trtserver"]
-          args: ["--model-store={{ .Values.backend.deployment.modelRepositoryPath }}"]
+          args: ["--model-store=/models"]
 
           ports:
             - containerPort: 8000
@@ -79,3 +105,6 @@ spec:
             httpGet:
               path: /api/health/ready
               port: http
+          volumeMounts:
+            - mountPath: /models
+              name: modelrepo
