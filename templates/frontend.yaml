@@ -52,7 +52,7 @@ spec:
     spec:
       containers:
         - name: {{ .Chart.Name }}
-          image: "renaudwastaken/tensorrt-frontend:latest"
+          image: "nvidia/tensorrt-labs:frontend"
 
           command: ["python"]
           args: ["main.py", "{{ template "nvidia-inference-server.backend.fullname" . }}:8000"]
